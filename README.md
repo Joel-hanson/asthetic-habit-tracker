@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aesthetic Habit Tracker
 
-## Getting Started
+A clean and minimalist habit tracking application designed to help you build effective daily routines and document personal highlights.
 
-First, run the development server:
+![App Screenshot](./public/screenshot.png)
+> *Please add a screenshot of your app here.*
+
+## Features
+
+- **Visual Habit Tracking** - Track multiple habits using an intuitive calendar grid
+- **Customizable Colors** - Personalize each habit with distinct color coding
+- **Memorable Moments** - Document important memories alongside your habits
+- **Privacy First** - All user data is stored locally in your browser
+- **Responsive Design** - Optimized for both desktop and mobile devices
+- **Share Progress** - Export and share your habit grid as an image
+
+## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How to Use
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Adding a Habit
+1. Click the **"Add"** button in the Habits section.
+2. Enter the name of your habit (for example: "Morning Yoga", "Read 30 min").
+3. Choose a color to help identify the habit.
+4. Begin tracking.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Tracking Daily
+- Click any day's checkbox to mark a habit as complete.
+- Navigate between months using the arrow buttons.
+- Use the **"Today"** button to return to the current month.
 
-## Learn More
+### Recording Moments
+- Click **"Add"** in the Memorable Moments section to record a special memory.
+- Write about what made your day meaningful.
+- View your memories over time.
 
-To learn more about Next.js, take a look at the following resources:
+## Customization
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Modify Theme
+You can update CSS variables in `app/globals.css` to further customize the application's visual style.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+### Deploy to Vercel
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Build for production
+npm run build
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tips
+
+- Data syncs automatically to your browser's local storage.
+- For consistency, consider starting with 2-3 habits.
+- Use the export button to share your progress.
+- Reset all app data by clearing your browser storage if required.
+
+## License
+
+[MIT License](LICENSE) — Free for personal and commercial use.
+
+## Acknowledgments
+
+This project is built with modern web technologies and inspired by the principle of simple, effective habit tracking.
