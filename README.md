@@ -3,7 +3,6 @@
 A clean and minimalist habit tracking application designed to help you build effective daily routines and document personal highlights.
 
 ![App Screenshot](./public/screenshot.png)
-> *Please add a screenshot of your app here.*
 
 ## Features
 
@@ -39,16 +38,6 @@ npm run dev
 - Navigate between months using the arrow buttons.
 - Use the **"Today"** button to return to the current month.
 
-### Recording Moments
-- Click **"Add"** in the Memorable Moments section to record a special memory.
-- Write about what made your day meaningful.
-- View your memories over time.
-
-## Customization
-
-### Modify Theme
-You can update CSS variables in `app/globals.css` to further customize the application's visual style.
-
 ## Deployment
 
 ### Deploy to Vercel
@@ -59,13 +48,6 @@ You can update CSS variables in `app/globals.css` to further customize the appli
 npm run build
 npm start
 ```
-
-## Tips
-
-- Data syncs automatically to your browser's local storage.
-- For consistency, consider starting with 2-3 habits.
-- Use the export button to share your progress.
-- Reset all app data by clearing your browser storage if required.
 
 ## License
 
