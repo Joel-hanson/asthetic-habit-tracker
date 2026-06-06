@@ -8,8 +8,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { toBlob, toPng } from 'html-to-image';
-import { jsPDF } from 'jspdf';
+import { toBlob } from 'html-to-image';
+import {
+  A4_HEIGHT_PX,
+  A4_WIDTH_PX,
+  buildPrintableHtml,
+  capturePrintable,
+  createPrintablePdf,
+} from '@/lib/printableExport';
 import { Download, Facebook, FileText, Link2, Linkedin, Printer, Share2, Twitter } from 'lucide-react';
 import { useState } from 'react';
 
@@ -23,28 +29,38 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const captureElement = async (element: HTMLElement) => {
-    return toBlob(element, {
-      quality: 1,
-      pixelRatio: 2,
-      backgroundColor: '#ffffff',
-      cacheBust: true,
-      style: {
-        transform: 'none',
-      },
-    });
-  };
-
-  const generateImage = async (ref: React.RefObject<HTMLDivElement | null>): Promise<Blob | null> => {
+  const captureScreen = async (ref: React.RefObject<HTMLDivElement | null>): Promise<Blob | null> => {
     if (!ref.current) return null;
 
     setIsGenerating(true);
 
     try {
-      return await captureElement(ref.current);
+      return await toBlob(ref.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+        style: { transform: 'none' },
+      });
     } catch (error) {
       console.error('Error generating image:', error);
       alert('Failed to generate image. Please try again.');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const captureA4Printable = async () => {
+    if (!printableRef.current) return null;
+
+    setIsGenerating(true);
+
+    try {
+      return await capturePrintable(printableRef.current);
+    } catch (error) {
+      console.error('Error generating printable:', error);
+      alert('Failed to generate printable. Please try again.');
       return null;
     } finally {
       setIsGenerating(false);
@@ -63,101 +79,37 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
   };
 
   const downloadImage = async () => {
-    const blob = await generateImage(gridRef);
+    const blob = await captureScreen(gridRef);
     if (!blob) return;
     downloadBlob(blob, `habit-tracker-${monthYear}.png`);
   };
 
   const downloadPrintableImage = async () => {
-    const blob = await generateImage(printableRef);
-    if (!blob) return;
-    downloadBlob(blob, `habit-tracker-printable-${monthYear}.png`);
+    const capture = await captureA4Printable();
+    if (!capture) return;
+    downloadBlob(capture.blob, `habit-tracker-${monthYear}.png`);
   };
 
   const downloadPrintablePdf = async () => {
-    if (!printableRef.current) return;
+    const capture = await captureA4Printable();
+    if (!capture) return;
 
-    setIsGenerating(true);
-
-    try {
-      const element = printableRef.current;
-      const dataUrl = await toPng(element, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-        style: {
-          transform: 'none',
-        },
-      });
-
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = reject;
-        img.src = dataUrl;
-      });
-
-      const orientation = img.width >= img.height ? 'landscape' : 'portrait';
-      const pdf = new jsPDF({
-        orientation,
-        unit: 'px',
-        format: [img.width, img.height],
-      });
-
-      pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
-      pdf.save(`habit-tracker-printable-${monthYear}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
+    const pdf = createPrintablePdf(capture.dataUrl, A4_WIDTH_PX, A4_HEIGHT_PX);
+    pdf.save(`habit-tracker-${monthYear}.pdf`);
   };
 
   const printPrintable = async () => {
-    if (!printableRef.current) return;
+    const capture = await captureA4Printable();
+    if (!capture) return;
 
-    setIsGenerating(true);
-
-    try {
-      const dataUrl = await toPng(printableRef.current, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-      });
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Please allow pop-ups to print your habit tracker.');
-        return;
-      }
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Habit Tracker - ${monthYear}</title>
-            <style>
-              @page { margin: 0.5in; }
-              body { margin: 0; display: flex; justify-content: center; }
-              img { max-width: 100%; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${dataUrl}" alt="Habit tracker for ${monthYear}" />
-            <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); };</script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (error) {
-      console.error('Error printing:', error);
-      alert('Failed to open print view. Please try again.');
-    } finally {
-      setIsGenerating(false);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow pop-ups to print your habit tracker.');
+      return;
     }
+
+    printWindow.document.write(buildPrintableHtml(capture.dataUrl, monthYear));
+    printWindow.document.close();
   };
 
   const shareToTwitter = async () => {
@@ -186,10 +138,10 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
   };
 
   const shareNative = async () => {
-    const blob = await generateImage(printableRef);
-    if (!blob) return;
+    const capture = await captureA4Printable();
+    if (!capture) return;
 
-    const file = new File([blob], `habit-tracker-printable-${monthYear}.png`, {
+    const file = new File([capture.blob], `habit-tracker-${monthYear}.png`, {
       type: 'image/png',
     });
 
@@ -232,7 +184,7 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
           <div>
             <p className="text-xs font-bold uppercase tracking-wide mb-2">Printable export</p>
             <p className="text-xs text-gray-600 mb-3">
-              Clean layout with month title and habit grid only — ideal for printing or saving.
+              A4 layout with month title and habit grid only. PDF, image, and print all match.
             </p>
             <div className="grid grid-cols-1 gap-2">
               <Button

@@ -146,8 +146,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <div ref={gridRef} className="flex-1 flex flex-col bg-white min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden w-full">
+            <div ref={gridRef} className="flex-1 flex flex-col bg-white min-h-0 w-full">
               {/* <div className="text-center py-4 border-b-2 border-black">
                 <h2 className="text-md font-bold uppercase tracking-wider">
                   {new Date(data.currentMonth).toLocaleDateString('en-US', {
