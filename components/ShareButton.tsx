@@ -8,6 +8,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { actionButtonCompactClass } from '@/lib/uiStyles';
+import { cn } from '@/lib/utils';
 import { toBlob } from 'html-to-image';
 import {
   A4_HEIGHT_PX,
@@ -22,10 +24,11 @@ import { useState } from 'react';
 interface ShareButtonProps {
   gridRef: React.RefObject<HTMLDivElement | null>;
   printableRef: React.RefObject<HTMLDivElement | null>;
-  monthYear: string;
+  exportSlug: string;
+  className?: string;
 }
 
-export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonProps) {
+export function ShareButton({ gridRef, printableRef, exportSlug, className }: ShareButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -81,13 +84,13 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
   const downloadImage = async () => {
     const blob = await captureScreen(gridRef);
     if (!blob) return;
-    downloadBlob(blob, `habit-tracker-${monthYear}.png`);
+    downloadBlob(blob, `habit-tracker-${exportSlug}.png`);
   };
 
   const downloadPrintableImage = async () => {
     const capture = await captureA4Printable();
     if (!capture) return;
-    downloadBlob(capture.blob, `habit-tracker-${monthYear}.png`);
+    downloadBlob(capture.blob, `habit-tracker-${exportSlug}.png`);
   };
 
   const downloadPrintablePdf = async () => {
@@ -95,7 +98,7 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
     if (!capture) return;
 
     const pdf = createPrintablePdf(capture.dataUrl, A4_WIDTH_PX, A4_HEIGHT_PX);
-    pdf.save(`habit-tracker-${monthYear}.pdf`);
+    pdf.save(`habit-tracker-${exportSlug}.pdf`);
   };
 
   const printPrintable = async () => {
@@ -108,12 +111,12 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
       return;
     }
 
-    printWindow.document.write(buildPrintableHtml(capture.dataUrl, monthYear));
+    printWindow.document.write(buildPrintableHtml(capture.dataUrl, exportSlug));
     printWindow.document.close();
   };
 
   const shareToTwitter = async () => {
-    const text = `Check out my habit tracker for ${monthYear}! 🎯 #HabitTracker #Productivity`;
+    const text = `Check out my habit tracker for ${exportSlug}! 🎯 #HabitTracker #Productivity`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'width=550,height=420');
   };
@@ -141,7 +144,7 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
     const capture = await captureA4Printable();
     if (!capture) return;
 
-    const file = new File([capture.blob], `habit-tracker-${monthYear}.png`, {
+    const file = new File([capture.blob], `habit-tracker-${exportSlug}.png`, {
       type: 'image/png',
     });
 
@@ -149,7 +152,7 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
       try {
         await navigator.share({
           title: 'My Habit Tracker',
-          text: `My habit tracker for ${monthYear}`,
+          text: `My habit tracker for ${exportSlug}`,
           files: [file],
         });
       } catch (error) {
@@ -165,14 +168,10 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-2 border-black hover:bg-black hover:text-white font-bold text-xs sm:text-sm w-full sm:w-auto cursor-pointer"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          SHARE & EXPORT
-        </Button>
+        <button type="button" className={cn(actionButtonCompactClass, className)}>
+          <Share2 className="w-3.5 h-3.5 mr-1.5" />
+          Share & Export
+        </button>
       </DialogTrigger>
       <DialogContent className="border-2 border-black font-mono max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -233,7 +232,7 @@ export function ShareButton({ gridRef, printableRef, monthYear }: ShareButtonPro
           <div className="border-t-2 border-black pt-4">
             <p className="text-xs font-bold uppercase tracking-wide mb-2">Screen capture</p>
             <p className="text-xs text-gray-600 mb-3">
-              Export exactly what you see on screen for {monthYear}.
+              Export exactly what you see on screen for {exportSlug}.
             </p>
             <Button
               onClick={downloadImage}

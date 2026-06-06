@@ -1,14 +1,20 @@
+import { normalizeTrackerData } from '@/lib/challenge';
 import { TrackerData, Habit, HabitCompletion, MemorableMoment } from '@/types/habit';
 import { format } from 'date-fns';
 
 const STORAGE_KEY = 'habit-tracker-data';
 
-export const getDefaultData = (): TrackerData => ({
-  habits: [],
-  completions: [],
-  moments: [],
-  currentMonth: format(new Date(), 'yyyy-MM'),
-});
+export const getDefaultData = (): TrackerData => {
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  return normalizeTrackerData({
+    habits: [],
+    completions: [],
+    moments: [],
+    currentMonth,
+    challengeStartDate: format(new Date(), 'yyyy-MM-dd'),
+    challengeDays: 30,
+  });
+};
 
 export const loadData = (): TrackerData => {
   if (typeof window === 'undefined') return getDefaultData();
@@ -16,7 +22,7 @@ export const loadData = (): TrackerData => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return getDefaultData();
-    return JSON.parse(stored);
+    return normalizeTrackerData(JSON.parse(stored));
   } catch (error) {
     console.error('Error loading data:', error);
     return getDefaultData();

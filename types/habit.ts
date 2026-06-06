@@ -20,6 +20,8 @@ export interface TrackerData {
   habits: Habit[];
   completions: HabitCompletion[];
   moments: MemorableMoment[];
-  currentMonth: string; // YYYY-MM format
+  currentMonth: string; // YYYY-MM format (legacy, kept for compatibility)
+  challengeStartDate: string; // YYYY-MM-DD — first day of the challenge
+  challengeDays: number; // total days in the challenge grid
 }
 

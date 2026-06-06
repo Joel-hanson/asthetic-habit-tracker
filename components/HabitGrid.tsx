@@ -1,8 +1,12 @@
 'use client';
 
 import { isCompleted } from '@/lib/storage';
+import {
+  getChallengeDayNumbers,
+  getDateForChallengeDay,
+  isChallengeDayFuture,
+} from '@/lib/challenge';
 import { TrackerData } from '@/types/habit';
-import { format, getDaysInMonth } from 'date-fns';
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -13,16 +17,21 @@ interface HabitGridProps {
 }
 
 const MIN_CHUNK = 7;
-const MAX_CHUNK = 31;
+
+function getLayoutMetrics() {
+  const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  return {
+    labelWidth: 6 * rootFont,
+    cellWidth: 1.25 * rootFont,
+    minGap: 0.75 * rootFont,
+  };
+}
 
 function measureMaxFit(contentWidth: number, totalDays: number): number {
-  const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-  const labelWidth = 6 * rootFont; // w-24
-  const cellWidth = 1.25 * rootFont; // w-5
-  const gap = 0.75 * rootFont; // gap-3
+  const { labelWidth, cellWidth, minGap } = getLayoutMetrics();
 
-  for (let n = Math.min(MAX_CHUNK, totalDays); n >= MIN_CHUNK; n--) {
-    const rowWidth = labelWidth + gap + n * cellWidth + (n - 1) * gap;
+  for (let n = totalDays; n >= MIN_CHUNK; n--) {
+    const rowWidth = labelWidth + n * cellWidth + n * minGap;
     if (rowWidth <= contentWidth) return n;
   }
   return MIN_CHUNK;
@@ -34,9 +43,7 @@ function resolveChunkSize(maxFit: number, totalDays: number): number {
 
   const remainder = totalDays % maxFit;
 
-  // Perfect or acceptable tail (2+ days on last row)
   if (remainder === 0 || remainder > 1) {
-    // Rebalance if the last row would be very small (2–5 days) vs a nearly full row
     if (remainder >= 2 && remainder <= 5) {
       const numRows = Math.ceil(totalDays / maxFit);
       const balanced = Math.ceil(totalDays / numRows);
@@ -45,12 +52,10 @@ function resolveChunkSize(maxFit: number, totalDays: number): number {
     return maxFit;
   }
 
-  // remainder === 1: avoid a lone day (e.g. 29 + 1)
   if (maxFit - 1 >= MIN_CHUNK && totalDays % (maxFit - 1) !== 1) {
     return maxFit - 1;
   }
 
-  // Fall back to an even split
   return Math.max(MIN_CHUNK, Math.ceil(totalDays / Math.ceil(totalDays / maxFit)));
 }
 
@@ -63,12 +68,8 @@ function buildChunks(days: number[], chunkSize: number): number[][] {
 }
 
 export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGridProps) {
-  const currentDate = new Date();
-  const year = parseInt(data.currentMonth.split('-')[0]);
-  const month = parseInt(data.currentMonth.split('-')[1]) - 1;
-  const daysInMonth = getDaysInMonth(new Date(year, month));
-
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const { challengeStartDate, challengeDays } = data;
+  const days = getChallengeDayNumbers(challengeDays);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [chunkSize, setChunkSize] = useState<number>(days.length);
 
@@ -138,7 +139,7 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
           <p className="text-xs text-gray-600">Click &apos;ADD HABIT&apos; to get started</p>
         </div>
       ) : (
-        <div className="p-6">
+        <div className="p-3 sm:p-4">
           <div ref={contentRef} className="w-full">
             {chunks.map((chunk, chunkIdx) => (
               <div key={`chunk-${chunkIdx}`} className="mb-8 last:mb-0 w-full">
@@ -178,9 +179,9 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
                       onTouchEnd={handleTouchEnd}
                     >
                       {chunk.map((day) => {
-                        const dateStr = format(new Date(year, month, day), 'yyyy-MM-dd');
+                        const dateStr = getDateForChallengeDay(challengeStartDate, day);
                         const completed = isCompleted(data, habit.id, dateStr);
-                        const isFuture = new Date(year, month, day) > currentDate;
+                        const isFuture = isChallengeDayFuture(challengeStartDate, day);
 
                         return (
                           <button

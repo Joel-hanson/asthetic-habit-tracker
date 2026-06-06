@@ -1,6 +1,11 @@
 'use client';
 
-import { isCompleted } from '@/lib/storage';
+import {
+  getChallengeDayNumbers,
+  getChallengeLabel,
+  getDateForChallengeDay,
+  isChallengeDayFuture,
+} from '@/lib/challenge';
 import {
   A4_HEIGHT_PX,
   A4_PADDING_PX,
@@ -9,8 +14,8 @@ import {
   computePrintChunkSize,
   getPrintCellSize,
 } from '@/lib/printableExport';
+import { isCompleted } from '@/lib/storage';
 import { TrackerData } from '@/types/habit';
-import { format, getDaysInMonth } from 'date-fns';
 import { forwardRef } from 'react';
 
 interface PrintableHabitGridProps {
@@ -19,12 +24,9 @@ interface PrintableHabitGridProps {
 
 export const PrintableHabitGrid = forwardRef<HTMLDivElement, PrintableHabitGridProps>(
   function PrintableHabitGrid({ data }, ref) {
-    const currentDate = new Date();
-    const year = parseInt(data.currentMonth.split('-')[0]);
-    const month = parseInt(data.currentMonth.split('-')[1]) - 1;
-    const daysInMonth = getDaysInMonth(new Date(year, month));
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    const monthLabel = format(new Date(year, month), 'MMMM yyyy');
+    const { challengeStartDate, challengeDays } = data;
+    const days = getChallengeDayNumbers(challengeDays);
+    const challengeLabel = getChallengeLabel(data);
 
     const chunkSize = computePrintChunkSize(days.length);
     const cellSize = getPrintCellSize(chunkSize);
@@ -58,7 +60,7 @@ export const PrintableHabitGrid = forwardRef<HTMLDivElement, PrintableHabitGridP
             flexShrink: 0,
           }}
         >
-          {monthLabel}
+          {challengeLabel}
         </h1>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
@@ -138,9 +140,9 @@ export const PrintableHabitGrid = forwardRef<HTMLDivElement, PrintableHabitGridP
                     </div>
                     <div style={{ display: 'flex', gap: `${gap}px` }}>
                       {chunk.map((day) => {
-                        const dateStr = format(new Date(year, month, day), 'yyyy-MM-dd');
+                        const dateStr = getDateForChallengeDay(challengeStartDate, day);
                         const completed = isCompleted(data, habit.id, dateStr);
-                        const isFuture = new Date(year, month, day) > currentDate;
+                        const isFuture = isChallengeDayFuture(challengeStartDate, day);
 
                         return (
                           <div
