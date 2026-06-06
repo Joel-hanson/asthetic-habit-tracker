@@ -2,9 +2,12 @@
 
 import { isCompleted } from '@/lib/storage';
 import {
+  formatChallengeDayTitle,
   getChallengeDayNumbers,
   getDateForChallengeDay,
+  getGridDayLabel,
   isChallengeDayFuture,
+  isChallengeDayToday,
 } from '@/lib/challenge';
 import { TrackerData } from '@/types/habit';
 import { cn } from '@/lib/utils';
@@ -86,6 +89,7 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
   const [showDeleteHint, setShowDeleteHint] = useState(false);
   const isTouchingRef = useRef(false);
   const lastTouchedRef = useRef<string | null>(null);
+  const suppressClickRef = useRef(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const labelTouchRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -163,9 +167,20 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
     lastTouchedRef.current = touchedKey;
     if (event?.cancelable) event.preventDefault();
     if (!btn.disabled) {
+      suppressClickRef.current = true;
       onToggleCompletion(habitId, date);
     }
     return touchedKey;
+  };
+
+  const handleCellClick = (habitId: string, dateStr: string, isFuture: boolean) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if (!isFuture) {
+      onToggleCompletion(habitId, dateStr);
+    }
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -182,6 +197,10 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
   const handleTouchEnd = () => {
     isTouchingRef.current = false;
     lastTouchedRef.current = null;
+    // iOS may suppress the ghost click after a swipe; reset if no click follows.
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 400);
   };
 
   return (
@@ -230,17 +249,33 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
                     Habit
                   </div>
                   <div className={cn('flex', daysLayout)}>
-                    {chunk.map((day) => (
-                      <div
-                        key={day}
-                        className={cn(
-                          'flex justify-center text-xs sm:text-sm font-semibold text-gray-500 shrink-0',
-                          cellLayout
-                        )}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                    {chunk.map((day) => {
+                      const { day: dayOfMonth, month } = getGridDayLabel(challengeStartDate, day);
+                      const isToday = isChallengeDayToday(challengeStartDate, day);
+
+                      return (
+                        <div
+                          key={day}
+                          className={cn(
+                            'flex flex-col items-center justify-center leading-none shrink-0',
+                            isToday ? 'text-black' : 'text-gray-500',
+                            cellLayout
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'text-xs sm:text-sm font-semibold',
+                              isToday && 'underline underline-offset-2 decoration-2'
+                            )}
+                          >
+                            {dayOfMonth}
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] font-medium uppercase tracking-tight mt-0.5">
+                            {month}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -281,6 +316,7 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
                         const dateStr = getDateForChallengeDay(challengeStartDate, day);
                         const completed = isCompleted(data, habit.id, dateStr);
                         const isFuture = isChallengeDayFuture(challengeStartDate, day);
+                        const isToday = isChallengeDayToday(challengeStartDate, day);
 
                         return (
                           <div key={`${habit.id}-${day}`} className={cn('flex justify-center shrink-0', cellLayout)}>
@@ -288,16 +324,19 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
                               type="button"
                               data-habit-id={habit.id}
                               data-date={dateStr}
-                              onClick={() => !isFuture && onToggleCompletion(habit.id, dateStr)}
+                              onClick={() => handleCellClick(habit.id, dateStr, isFuture)}
                               disabled={isFuture}
-                              className={`w-[1.375rem] h-[1.375rem] sm:w-5 sm:h-5 rounded-full border-2 transition-all shrink-0 ${
+                              className={cn(
+                                'w-[1.375rem] h-[1.375rem] sm:w-5 sm:h-5 rounded-full border-2 transition-all shrink-0',
                                 completed
                                   ? 'bg-black border-black'
                                   : isFuture
                                     ? 'bg-white border-gray-300'
-                                    : 'bg-white border-black hover:bg-gray-50'
-                              } ${isFuture ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                              title={`${habit.name} - Day ${day}`}
+                                    : 'bg-white border-black hover:bg-gray-50',
+                                isToday && !completed && !isFuture && 'ring-2 ring-black/25 ring-offset-1',
+                                isFuture ? 'cursor-not-allowed' : 'cursor-pointer'
+                              )}
+                              title={`${habit.name} - ${formatChallengeDayTitle(challengeStartDate, day)}`}
                             />
                           </div>
                         );

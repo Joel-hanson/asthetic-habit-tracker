@@ -1,7 +1,7 @@
 import { TrackerData } from '@/types/habit';
-import { addDays, format, getDaysInMonth, parseISO, startOfDay } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, getDaysInMonth, parseISO, startOfDay } from 'date-fns';
 
-export const CHALLENGE_DURATION_PRESETS = [7, 14, 21, 30, 60, 90, 100] as const;
+export const CHALLENGE_DURATION_PRESETS = [7, 14, 21, 30, 60, 75, 90, 100] as const;
 export const MIN_CHALLENGE_DAYS = 1;
 export const MAX_CHALLENGE_DAYS = 365;
 
@@ -25,8 +25,74 @@ export function getChallengeDayNumbers(totalDays: number): number[] {
   return Array.from({ length: totalDays }, (_, i) => i + 1);
 }
 
+export interface GridDayLabel {
+  day: string;
+  month: string;
+}
+
+export function getGridDayLabel(startDate: string, day: number): GridDayLabel {
+  const date = parseISO(getDateForChallengeDay(startDate, day));
+  return {
+    day: format(date, 'd'),
+    month: format(date, 'MMM'),
+  };
+}
+
+export function formatChallengeDayTitle(startDate: string, day: number): string {
+  return format(parseISO(getDateForChallengeDay(startDate, day)), 'MMM d, yyyy');
+}
+
 export function getDateForChallengeDay(startDate: string, day: number): string {
   return format(addDays(parseISO(startDate), day - 1), 'yyyy-MM-dd');
+}
+
+export type ChallengeStatus = 'not-started' | 'active' | 'complete';
+
+export interface ChallengeProgress {
+  status: ChallengeStatus;
+  currentDay: number | null;
+  daysRemaining: number;
+  daysUntilStart: number;
+}
+
+export function getChallengeProgress(
+  startDate: string,
+  totalDays: number,
+  referenceDate: Date = new Date()
+): ChallengeProgress {
+  const start = startOfDay(parseISO(startDate));
+  const end = startOfDay(parseISO(getChallengeEndDate(startDate, totalDays)));
+  const today = startOfDay(referenceDate);
+
+  if (today < start) {
+    return {
+      status: 'not-started',
+      currentDay: null,
+      daysRemaining: totalDays,
+      daysUntilStart: differenceInCalendarDays(start, today),
+    };
+  }
+
+  if (today > end) {
+    return {
+      status: 'complete',
+      currentDay: totalDays,
+      daysRemaining: 0,
+      daysUntilStart: 0,
+    };
+  }
+
+  const currentDay = differenceInCalendarDays(today, start) + 1;
+  return {
+    status: 'active',
+    currentDay,
+    daysRemaining: totalDays - currentDay,
+    daysUntilStart: 0,
+  };
+}
+
+export function isChallengeDayToday(startDate: string, day: number, referenceDate: Date = new Date()): boolean {
+  return getDateForChallengeDay(startDate, day) === format(referenceDate, 'yyyy-MM-dd');
 }
 
 export function isChallengeDayFuture(startDate: string, day: number): boolean {

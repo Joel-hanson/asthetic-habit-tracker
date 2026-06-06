@@ -4,6 +4,7 @@ import {
   getChallengeDayNumbers,
   getChallengeLabel,
   getDateForChallengeDay,
+  getGridDayLabel,
   isChallengeDayFuture,
 } from '@/lib/challenge';
 import {
@@ -93,24 +94,38 @@ export const PrintableHabitGrid = forwardRef<HTMLDivElement, PrintableHabitGridP
                     Habit
                   </div>
                   <div style={{ display: 'flex', gap: `${gap}px` }}>
-                    {chunk.map((day) => (
-                      <div
-                        key={day}
-                        style={{
-                          width: `${cellSize}px`,
-                          height: `${cellSize}px`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          fontWeight: 600,
-                          color: '#666',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                    {chunk.map((day) => {
+                      const { day: dayOfMonth, month } = getGridDayLabel(challengeStartDate, day);
+
+                      return (
+                        <div
+                          key={day}
+                          style={{
+                            width: `${cellSize}px`,
+                            minHeight: `${cellSize}px`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1,
+                            color: '#666',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{ fontSize: '10px', fontWeight: 600 }}>{dayOfMonth}</span>
+                          <span
+                            style={{
+                              fontSize: '7px',
+                              fontWeight: 500,
+                              textTransform: 'uppercase',
+                              marginTop: '1px',
+                            }}
+                          >
+                            {month}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

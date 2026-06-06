@@ -1,17 +1,18 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { ChallengeDatePicker } from '@/components/ChallengeDatePicker';
 import { Input } from '@/components/ui/input';
 import {
   CHALLENGE_DURATION_PRESETS,
   getChallengeEndDate,
+  getChallengeProgress,
   MAX_CHALLENGE_DAYS,
   MIN_CHALLENGE_DAYS,
 } from '@/lib/challenge';
 import { pillActive, pillBase, pillIdle } from '@/lib/uiStyles';
 import { cn } from '@/lib/utils';
-import { addMonths, format, parseISO, subMonths } from 'date-fns';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ChallengeSettingsProps {
@@ -27,6 +28,27 @@ function clampDays(days: number): number {
   return Math.min(MAX_CHALLENGE_DAYS, Math.max(MIN_CHALLENGE_DAYS, days));
 }
 
+function getProgressLabel(challengeDays: number, progress: ReturnType<typeof getChallengeProgress>): string {
+  if (progress.status === 'not-started') {
+    const days = progress.daysUntilStart;
+    return days === 1 ? 'Starts tomorrow' : `Starts in ${days} days`;
+  }
+  if (progress.status === 'complete') {
+    return 'Challenge complete';
+  }
+  return `Day ${progress.currentDay} of ${challengeDays}`;
+}
+
+function getProgressDetail(progress: ReturnType<typeof getChallengeProgress>): string | null {
+  if (progress.status === 'active' && progress.daysRemaining > 0) {
+    return progress.daysRemaining === 1 ? '1 day left' : `${progress.daysRemaining} days left`;
+  }
+  if (progress.status === 'active' && progress.daysRemaining === 0) {
+    return 'Final day';
+  }
+  return null;
+}
+
 export function ChallengeSettings({
   challengeStartDate,
   challengeDays,
@@ -38,6 +60,8 @@ export function ChallengeSettings({
   const startDate = parseISO(challengeStartDate);
   const endDate = parseISO(getChallengeEndDate(challengeStartDate, challengeDays));
   const today = format(new Date(), 'yyyy-MM-dd');
+  const progress = getChallengeProgress(challengeStartDate, challengeDays);
+  const progressDetail = getProgressDetail(progress);
   const [customDays, setCustomDays] = useState(String(challengeDays));
   const isPreset = CHALLENGE_DURATION_PRESETS.includes(
     challengeDays as (typeof CHALLENGE_DURATION_PRESETS)[number]
@@ -46,14 +70,6 @@ export function ChallengeSettings({
   useEffect(() => {
     setCustomDays(String(challengeDays));
   }, [challengeDays]);
-
-  const handlePrevMonth = () => {
-    onStartDateChange(format(subMonths(startDate, 1), 'yyyy-MM-dd'));
-  };
-
-  const handleNextMonth = () => {
-    onStartDateChange(format(addMonths(startDate, 1), 'yyyy-MM-dd'));
-  };
 
   const handlePreset = (days: number) => {
     setCustomDays(String(days));
@@ -82,50 +98,30 @@ export function ChallengeSettings({
           Challenge
         </p>
         <p className="text-base sm:text-sm font-bold uppercase tracking-wide">
-          {challengeDays} days
+          {getProgressLabel(challengeDays, progress)}
         </p>
         <p className="text-[11px] sm:text-[10px] text-gray-500 mt-0.5 uppercase tracking-wide">
           {format(startDate, 'MMM d')} – {format(endDate, 'MMM d, yyyy')}
         </p>
+        {progressDetail && (
+          <p className="text-[11px] sm:text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">
+            {progressDetail}
+          </p>
+        )}
       </div>
 
       <div>
         <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-gray-400 mb-2">
-          Start
+          Started
         </p>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrevMonth}
-            className="h-9 w-9 sm:h-7 sm:w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
-            title="Previous month"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-3 sm:h-3" />
-          </Button>
-
-          <p className="flex-1 text-center text-xs sm:text-[11px] font-bold uppercase tracking-wide truncate">
-            {format(startDate, 'MMM d, yyyy')}
-          </p>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNextMonth}
-            className="h-9 w-9 sm:h-7 sm:w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
-            title="Next month"
-          >
-            <ChevronRight className="w-4 h-4 sm:w-3 sm:h-3" />
-          </Button>
-        </div>
-
+        <ChallengeDatePicker value={challengeStartDate} onChange={onStartDateChange} />
         {challengeStartDate !== today && (
           <button
             type="button"
             onClick={() => onStartDateChange(today)}
             className="mt-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 hover:text-black transition-colors cursor-pointer"
           >
-            Reset to today
+            Start today
           </button>
         )}
       </div>
