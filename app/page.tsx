@@ -2,6 +2,7 @@
 
 import { HabitGrid } from '@/components/HabitGrid';
 import { MonthSelector } from '@/components/MonthSelector';
+import { PrintableHabitGrid } from '@/components/PrintableHabitGrid';
 import { ShareButton } from '@/components/ShareButton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ export default function Home() {
   const [newHabitName, setNewHabitName] = useState('');
   const [habitToDelete, setHabitToDelete] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const printableRef = useRef<HTMLDivElement>(null);
 
   // ⚠️ CHANGE 2: Load data only on client side in useEffect
   useEffect(() => {
@@ -80,24 +82,29 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-hidden font-mono">
-      <div className="w-full max-w-6xl h-[98vh] sm:h-[95vh]">
-        <Card className="p-3 sm:p-6 border-2 border-black h-full flex flex-col overflow-hidden bg-white shadow-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 shrink-0 pb-3 sm:pb-4 border-b-2 border-black gap-3 sm:gap-0">
-            <MonthSelector
-              currentMonth={data.currentMonth}
-              onMonthChange={handleMonthChange}
-            />
+    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-auto font-mono">
+      <div className="w-full max-w-6xl">
+        <Card className="p-3 sm:p-6 border-2 border-black flex flex-col overflow-hidden bg-white shadow-lg rounded-[2rem]">
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="border-2 border-black rounded-2xl p-3 flex items-center justify-center">
+              <MonthSelector
+                currentMonth={data.currentMonth}
+                onMonthChange={handleMonthChange}
+              />
+            </div>
 
-            <div className="flex gap-2 w-full sm:w-auto">
-              <ShareButton gridRef={gridRef} monthYear={data.currentMonth} />
-
+            <div className="flex flex-col gap-3">
+              <ShareButton
+                gridRef={gridRef}
+                printableRef={printableRef}
+                monthYear={data.currentMonth}
+              />
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-2 border-black hover:bg-black hover:text-white font-bold text-xs sm:text-sm w-full sm:w-auto cursor-pointer"
+                    className="w-full border-2 border-black hover:bg-black hover:text-white font-bold text-sm cursor-pointer"
                   >
                     + ADD HABIT
                   </Button>
@@ -140,16 +147,15 @@ export default function Home() {
           </div>
 
           <div className="flex-1 min-h-0 overflow-hidden">
-            <div ref={gridRef} className="h-full flex flex-col bg-white">
-              {/* Month/Year header for exported image */}
-              <div className="text-center py-4 border-b-2 border-black">
-                <h2 className="text-2xl font-bold uppercase tracking-wider">
+            <div ref={gridRef} className="flex-1 flex flex-col bg-white min-h-0">
+              {/* <div className="text-center py-4 border-b-2 border-black">
+                <h2 className="text-md font-bold uppercase tracking-wider">
                   {new Date(data.currentMonth).toLocaleDateString('en-US', {
                     month: 'long',
                     year: 'numeric'
                   })}
                 </h2>
-              </div>
+              </div> */}
               <HabitGrid
                 data={data}
                 onToggleCompletion={handleToggleCompletion}
@@ -158,6 +164,13 @@ export default function Home() {
             </div>
           </div>
         </Card>
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="fixed left-[-9999px] top-0 pointer-events-none"
+      >
+        <PrintableHabitGrid ref={printableRef} data={data} />
       </div>
 
       <AlertDialog open={!!habitToDelete} onOpenChange={(open) => !open && setHabitToDelete(null)}>

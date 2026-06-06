@@ -4,6 +4,7 @@ import { isCompleted } from '@/lib/storage';
 import { TrackerData } from '@/types/habit';
 import { format, getDaysInMonth } from 'date-fns';
 import { X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface HabitGridProps {
   data: TrackerData;
@@ -18,98 +19,153 @@ export function HabitGrid({ data, onToggleCompletion, onDeleteHabit }: HabitGrid
   const daysInMonth = getDaysInMonth(new Date(year, month));
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [chunkSize, setChunkSize] = useState<number>(13);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollLeft = e.currentTarget.scrollLeft;
-    const header = e.currentTarget.previousElementSibling as HTMLElement;
-    if (header) {
-      header.scrollLeft = scrollLeft;
+  useEffect(() => {
+    const computeChunkSize = () => {
+      const containerWidth = containerRef.current?.clientWidth ?? window.innerWidth;
+      const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const labelWidth = 6 * rootFont; // Tailwind `w-24` => 6rem
+      const cellWidth = 1.7 * rootFont; // Tailwind `w-5` => 1.75rem
+      const gap = 0.75 * rootFont; // Tailwind `gap-3` => 0.75rem
+      const extraPadding = 48; // a small buffer for paddings/margins
+
+      const available = containerWidth - labelWidth - extraPadding;
+      const perCell = cellWidth + gap;
+      const count = Math.floor(available / perCell) || 1;
+
+      // enforce sensible bounds
+      const min = 7;
+      const max = days.length;
+      const size = Math.max(min, Math.min(max, count));
+      setChunkSize(size);
+    };
+
+    computeChunkSize();
+    window.addEventListener('resize', computeChunkSize);
+    return () => window.removeEventListener('resize', computeChunkSize);
+  }, [days.length]);
+
+  const chunks: number[][] = [];
+  for (let i = 0; i < days.length; i += chunkSize) {
+    chunks.push(days.slice(i, i + chunkSize));
+  }
+
+  const isTouchingRef = useRef(false);
+  const lastTouchedRef = useRef<string | null>(null);
+
+  const handleTouch = (touch: React.Touch | null, event?: React.TouchEvent) => {
+    if (!touch) return null;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null;
+    if (!el) return null;
+    const btn = el.closest('button[data-date]') as HTMLButtonElement | null;
+    if (!btn) return null;
+    const date = btn.getAttribute('data-date');
+    const habitId = btn.getAttribute('data-habit-id');
+    if (!date || !habitId) return null;
+    const touchedKey = `${habitId}:${date}`;
+    if (lastTouchedRef.current === touchedKey) return null;
+    lastTouchedRef.current = touchedKey;
+    if (event?.cancelable) event.preventDefault();
+    if (!btn.disabled) {
+      onToggleCompletion(habitId, date);
     }
+    return touchedKey;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    isTouchingRef.current = true;
+    lastTouchedRef.current = null;
+    handleTouch(e.touches[0], e);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isTouchingRef.current) return;
+    handleTouch(e.touches[0]);
+  };
+
+  const handleTouchEnd = () => {
+    isTouchingRef.current = false;
+    lastTouchedRef.current = null;
   };
 
   return (
-    <div className="h-full overflow-hidden flex flex-col font-mono">
+    <div ref={containerRef} className="w-full h-full bg-white overflow-auto" style={{ fontFamily: 'monospace', touchAction: 'manipulation' }}>
       {data.habits.length === 0 ? (
-        <div className="text-center py-8 sm:py-16 text-black">
-          <p className="text-xs sm:text-sm mb-1 font-bold">NO HABITS YET</p>
-          <p className="text-[10px] sm:text-xs">Click &quot;ADD HABIT&quot; to get started</p>
+        <div className="text-center py-16">
+          <p className="text-sm font-bold tracking-wide mb-2">NO HABITS YET</p>
+          <p className="text-xs text-gray-600">Click &apos;ADD HABIT&apos; to get started</p>
         </div>
       ) : (
-        <div className="border-2 border-black overflow-hidden flex-1 flex flex-col min-h-0">
-          {/* Header with day numbers */}
-          <div className="flex gap-0 border-b-2 border-black shrink-0 bg-black text-white overflow-x-auto scrollbar-hide">
-            <div className="w-20 sm:w-40 border-r-2 border-white px-1 sm:px-3 py-1.5 sm:py-2.5 font-bold text-[8px] sm:text-xs flex items-center justify-center sm:justify-start tracking-wide sticky left-0 bg-black z-10">
-              HABIT
-            </div>
-            {days.map((day) => (
-              <div
-                key={day}
-                className="flex-1 min-w-[28px] sm:min-w-0 h-7 sm:h-10 flex items-center justify-center text-[8px] sm:text-[11px] font-bold border-r border-white last:border-r-0"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Habit rows */}
-          <div className="flex-1 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleScroll}>
-            {data.habits.map((habit) => (
-              <div
-                key={habit.id}
-                className={`flex gap-0 items-stretch group border-b border-black hover:bg-gray-50`}
-              >
-                {/* Habit name */}
-                <div className="w-20 sm:w-40 px-1 sm:px-3 flex items-center justify-center sm:justify-between gap-1 sm:gap-2 py-1.5 sm:py-2.5 border-r-2 border-black sticky left-0 bg-white z-10">
-                  <span className="text-[8px] sm:text-[11px] truncate font-bold uppercase text-center sm:text-left">
-                    {habit.name}
-                  </span>
-                  <button
-                    onClick={() => onDeleteHabit(habit.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black hover:text-white border border-black hidden sm:block shrink-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+        <div className="p-6">
+          {chunks.map((chunk, chunkIdx) => (
+            <div key={`chunk-${chunkIdx}`} className="mb-8">
+              {/* Header row: "Habit" label + day numbers */}
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-24 text-sm font-bold shrink-0 text-gray-500 uppercase">Habit</div>
+                <div className="flex gap-3 text-gray-500">
+                  {chunk.map((day) => (
+                    <div
+                      key={day}
+                      className="w-5 h-5 flex items-center justify-center text-sm font-semibold shrink-0"
+                    >
+                      {day}
+                    </div>
+                  ))}
                 </div>
+              </div>
 
-                {/* Completion checkboxes */}
-                <div className="flex gap-0 flex-1">
-                  {days.map((day, dayIndex) => {
-                    const dateStr = format(new Date(year, month, day), 'yyyy-MM-dd');
-                    const completed = isCompleted(data, habit.id, dateStr);
-                    const isFuture = new Date(year, month, day) > currentDate;
-
-                    return (
+              {/* One data row per habit */}
+              {data.habits.map((habit) => (
+                <div key={`${chunkIdx}-${habit.id}`} className="flex items-center gap-3 mb-1 group">
+                  <div className="w-24 flex items-center justify-between shrink-0">
+                    <span className="text-sm font-semibold truncate uppercase">{habit.name}</span>
+                    {chunkIdx === 0 && (
                       <button
-                        key={day}
-                        onClick={() => !isFuture && onToggleCompletion(habit.id, dateStr)}
-                        disabled={isFuture}
-                        className={`
-                          flex-1 min-w-[28px] sm:min-w-0 h-8 sm:h-11 flex items-center justify-center
-                          transition-all duration-150 relative
-                          ${dayIndex !== days.length - 1 ? 'border-r border-black' : ''}
-                          ${isFuture ? 'opacity-20 cursor-not-allowed bg-gray-100' : 'cursor-pointer hover:bg-gray-100'}
-                        `}
+                        type="button"
+                        onClick={() => onDeleteHabit(habit.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded ml-1"
+                        title="Delete habit"
                       >
-                        {completed && (
-                          <span className="text-black text-sm sm:text-xl font-extrabold leading-none">✕</span>
-                        )}
+                        <X className="w-3 h-3" />
                       </button>
-                    );
-                  })}
+                    )}
+                  </div>
+                  <div
+                    className="flex gap-3"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                  >
+                    {chunk.map((day) => {
+                      const dateStr = format(new Date(year, month, day), 'yyyy-MM-dd');
+                      const completed = isCompleted(data, habit.id, dateStr);
+                      const isFuture = new Date(year, month, day) > currentDate;
+
+                      return (
+                        <button
+                          key={`${habit.id}-${day}`}
+                          type="button"
+                          data-habit-id={habit.id}
+                          data-date={dateStr}
+                          onClick={() => !isFuture && onToggleCompletion(habit.id, dateStr)}
+                          disabled={isFuture}
+                          className={`w-5 h-5 rounded-full border-2 transition-all shrink-0 ${completed
+                            ? 'bg-black border-black'
+                            : isFuture
+                              ? 'bg-white border-gray-300'
+                              : 'bg-white border-black hover:bg-gray-50'
+                            } ${isFuture ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                          title={`${habit.name} - Day ${day}`}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {/* Empty filler row to extend grid lines to bottom */}
-            <div className="flex-1 flex gap-0">
-              <div className="w-20 sm:w-40 border-r-2 border-gray-200 sticky left-0 bg-white"></div>
-              {days.map((day, dayIndex) => (
-                <div
-                  key={day}
-                  className={`flex-1 min-w-[28px] sm:min-w-0 ${dayIndex !== days.length - 1 ? 'border-r border-gray-200' : ''}`}
-                ></div>
               ))}
             </div>
-          </div>
+          ))}
         </div>
       )}
     </div>
