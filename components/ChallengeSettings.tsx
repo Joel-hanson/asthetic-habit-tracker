@@ -9,8 +9,9 @@ import {
   MIN_CHALLENGE_DAYS,
 } from '@/lib/challenge';
 import { pillActive, pillBase, pillIdle } from '@/lib/uiStyles';
+import { cn } from '@/lib/utils';
 import { addMonths, format, parseISO, subMonths } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ChallengeSettingsProps {
@@ -18,6 +19,8 @@ interface ChallengeSettingsProps {
   challengeDays: number;
   onStartDateChange: (startDate: string) => void;
   onDurationChange: (days: number) => void;
+  mobileExtrasExpanded?: boolean;
+  onToggleMobileExtras?: () => void;
 }
 
 function clampDays(days: number): number {
@@ -29,6 +32,8 @@ export function ChallengeSettings({
   challengeDays,
   onStartDateChange,
   onDurationChange,
+  mobileExtrasExpanded = true,
+  onToggleMobileExtras,
 }: ChallengeSettingsProps) {
   const startDate = parseISO(challengeStartDate);
   const endDate = parseISO(getChallengeEndDate(challengeStartDate, challengeDays));
@@ -71,90 +76,109 @@ export function ChallengeSettings({
   };
 
   return (
-    <div className="w-full font-mono">
-      <div className="mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-0.5">
+    <div className="w-full font-mono space-y-4">
+      <div>
+        <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-gray-400 mb-0.5">
           Challenge
         </p>
-        <p className="text-sm font-bold uppercase tracking-wide">
+        <p className="text-base sm:text-sm font-bold uppercase tracking-wide">
           {challengeDays} days
         </p>
-        <p className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-wide">
+        <p className="text-[11px] sm:text-[10px] text-gray-500 mt-0.5 uppercase tracking-wide">
           {format(startDate, 'MMM d')} – {format(endDate, 'MMM d, yyyy')}
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">
-            Start
+      <div>
+        <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-gray-400 mb-2">
+          Start
+        </p>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handlePrevMonth}
+            className="h-9 w-9 sm:h-7 sm:w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
+            title="Previous month"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-3 sm:h-3" />
+          </Button>
+
+          <p className="flex-1 text-center text-xs sm:text-[11px] font-bold uppercase tracking-wide truncate">
+            {format(startDate, 'MMM d, yyyy')}
           </p>
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handlePrevMonth}
-              className="h-7 w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
-              title="Previous month"
-            >
-              <ChevronLeft className="w-3 h-3" />
-            </Button>
 
-            <p className="flex-1 text-center text-[11px] font-bold uppercase tracking-wide truncate">
-              {format(startDate, 'MMM d, yyyy')}
-            </p>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleNextMonth}
-              className="h-7 w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
-              title="Next month"
-            >
-              <ChevronRight className="w-3 h-3" />
-            </Button>
-          </div>
-
-          {challengeStartDate !== today && (
-            <button
-              type="button"
-              onClick={() => onStartDateChange(today)}
-              className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 hover:text-black transition-colors cursor-pointer"
-            >
-              Reset to today
-            </button>
-          )}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleNextMonth}
+            className="h-9 w-9 sm:h-7 sm:w-7 border-2 border-black/15 hover:border-black hover:bg-black hover:text-white cursor-pointer shrink-0 rounded-lg"
+            title="Next month"
+          >
+            <ChevronRight className="w-4 h-4 sm:w-3 sm:h-3" />
+          </Button>
         </div>
 
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">
-            Length
-          </p>
-          <div className="grid grid-cols-4 gap-1">
-            {CHALLENGE_DURATION_PRESETS.map((days) => (
-              <button
-                key={days}
-                type="button"
-                onClick={() => handlePreset(days)}
-                className={`${pillBase} h-8 text-[10px] ${challengeDays === days ? pillActive : pillIdle}`}
-              >
-                {days}d
-              </button>
-            ))}
-            <Input
-              type="number"
-              min={MIN_CHALLENGE_DAYS}
-              max={MAX_CHALLENGE_DAYS}
-              value={customDays}
-              onChange={(e) => handleCustomDaysChange(e.target.value)}
-              onBlur={handleCustomDaysBlur}
-              onKeyDown={(e) => e.key === 'Enter' && handleCustomDaysBlur()}
-              aria-label="Custom challenge length in days"
-              className={`${pillBase} h-8 px-0.5 text-[10px] text-center focus:ring-0 focus:ring-offset-0 ${
-                !isPreset ? pillActive : pillIdle
+        {challengeStartDate !== today && (
+          <button
+            type="button"
+            onClick={() => onStartDateChange(today)}
+            className="mt-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 hover:text-black transition-colors cursor-pointer"
+          >
+            Reset to today
+          </button>
+        )}
+      </div>
+
+      {onToggleMobileExtras && (
+        <button
+          type="button"
+          onClick={onToggleMobileExtras}
+          className="md:hidden flex items-center justify-between w-full py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400 hover:text-black transition-colors cursor-pointer"
+          aria-expanded={mobileExtrasExpanded}
+        >
+          <span>{mobileExtrasExpanded ? 'Hide length & actions' : 'Show length & actions'}</span>
+          <ChevronDown
+            className={cn('w-4 h-4 transition-transform', mobileExtrasExpanded && 'rotate-180')}
+          />
+        </button>
+      )}
+
+      <div className={cn(onToggleMobileExtras && !mobileExtrasExpanded && 'max-md:hidden')}>
+        <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-gray-400 mb-2">
+          Length
+        </p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {CHALLENGE_DURATION_PRESETS.map((days) => (
+            <button
+              key={days}
+              type="button"
+              onClick={() => handlePreset(days)}
+              className={`${pillBase} h-9 sm:h-8 text-[11px] sm:text-[10px] ${challengeDays === days ? pillActive : pillIdle}`}
+            >
+              {days}d
+            </button>
+          ))}
+        </div>
+        <div className="relative mt-1.5">
+          <Input
+            type="number"
+            min={MIN_CHALLENGE_DAYS}
+            max={MAX_CHALLENGE_DAYS}
+            value={customDays}
+            onChange={(e) => handleCustomDaysChange(e.target.value)}
+            onBlur={handleCustomDaysBlur}
+            onKeyDown={(e) => e.key === 'Enter' && handleCustomDaysBlur()}
+            aria-label="Custom challenge length in days"
+            className={`${pillBase} w-full h-9 sm:h-8 pr-6 pl-2 text-[10px] sm:text-[10px] md:text-[10px] text-left md:text-center focus:ring-0 focus:ring-offset-0 ${!isPreset ? pillActive : pillIdle
               }`}
-            />
-          </div>
+          />
+          <span
+            className={`pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase ${!isPreset ? 'text-white' : 'text-gray-400'
+              }`}
+          >
+            days
+          </span>
         </div>
       </div>
     </div>

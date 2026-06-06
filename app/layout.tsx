@@ -12,14 +12,35 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_NAME = 'Habit Tracker';
+const APP_DESCRIPTION = 'A simple and elegant habit tracking app';
+
 export const metadata: Metadata = {
-  title: "Habit Tracker",
-  description: "A simple and elegant habit tracking app",
+  applicationName: APP_NAME,
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_NAME,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#000000',
 };
 
 export default function RootLayout({

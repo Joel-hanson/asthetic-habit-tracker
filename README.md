@@ -2,15 +2,13 @@
 
 A clean and minimalist habit tracking application designed to help you build effective daily routines and document personal highlights.
 
-![App Screenshot](./public/screenshot.png)
-
 ## Features
 
 - **Visual Habit Tracking** - Track multiple habits using an intuitive calendar grid
 - **Customizable Colors** - Personalize each habit with distinct color coding
-- **Memorable Moments** - Document important memories alongside your habits
 - **Privacy First** - All user data is stored locally in your browser
 - **Responsive Design** - Optimized for both desktop and mobile devices
+- **Installable PWA** - Add to your home screen and use offline
 - **Share Progress** - Export and share your habit grid as an image
 
 ## Quick Start

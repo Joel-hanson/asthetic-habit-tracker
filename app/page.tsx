@@ -1,6 +1,7 @@
 'use client';
 
 import { ChallengeSettings } from '@/components/ChallengeSettings';
+import { DataStorageControls } from '@/components/DataStorageControls';
 import { HabitGrid } from '@/components/HabitGrid';
 import { PrintableHabitGrid } from '@/components/PrintableHabitGrid';
 import { ShareButton } from '@/components/ShareButton';
@@ -14,12 +15,16 @@ import { actionButtonClass } from '@/lib/uiStyles';
 import {
   addHabit as addHabitToData,
   deleteHabit as deleteHabitFromData,
+  getDefaultData,
   loadData,
   saveData,
   toggleCompletion as toggleCompletionInData,
 } from '@/lib/storage';
+import { cn } from '@/lib/utils';
 import { Habit, TrackerData } from '@/types/habit';
 import { useEffect, useRef, useState } from 'react';
+
+const MOBILE_EXTRAS_KEY = 'habit-tracker-mobile-extras-expanded';
 
 export default function Home() {
   // ⚠️ CHANGE 1: Remove lazy initializer - start with null
@@ -27,13 +32,19 @@ export default function Home() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [habitToDelete, setHabitToDelete] = useState<string | null>(null);
+  const [mobileExtrasExpanded, setMobileExtrasExpanded] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const printableRef = useRef<HTMLDivElement>(null);
 
   // ⚠️ CHANGE 2: Load data only on client side in useEffect
   useEffect(() => {
     setData(loadData());
+    setMobileExtrasExpanded(localStorage.getItem(MOBILE_EXTRAS_KEY) === 'true');
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_EXTRAS_KEY, String(mobileExtrasExpanded));
+  }, [mobileExtrasExpanded]);
 
   useEffect(() => {
     if (data) {
@@ -44,7 +55,7 @@ export default function Home() {
   // ⚠️ CHANGE 3: Make loading state match main container structure
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-hidden font-mono">
+      <div className="min-h-screen flex items-center justify-center px-3 py-4 sm:p-4 overflow-hidden font-mono">
         <div className="animate-pulse text-black">Loading...</div>
       </div>
     );
@@ -92,65 +103,79 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-auto font-mono">
+    <div className="min-h-screen flex items-start sm:items-center justify-center px-3 py-4 sm:p-4 overflow-auto font-mono">
       <div className="w-full max-w-6xl">
-        <Card className="p-3 sm:p-5 border-2 border-black flex flex-col overflow-hidden bg-white shadow-lg rounded-[2rem]">
+        <Card className="p-4 sm:p-5 border-2 border-black flex flex-col overflow-hidden bg-white shadow-lg rounded-2xl sm:rounded-[2rem]">
           <div className="flex flex-col md:flex-row gap-4 md:gap-5 flex-1 min-h-0">
-            <aside className="md:w-44 lg:w-48 shrink-0 md:border-r md:border-black/10 md:pr-4 flex flex-col gap-4">
+            <aside className="md:w-44 lg:w-48 shrink-0 md:border-r md:border-black/10 md:pr-4 flex flex-col gap-3 sm:gap-4">
               <ChallengeSettings
                 challengeStartDate={data.challengeStartDate}
                 challengeDays={data.challengeDays}
                 onStartDateChange={handleStartDateChange}
                 onDurationChange={handleDurationChange}
+                mobileExtrasExpanded={mobileExtrasExpanded}
+                onToggleMobileExtras={() => setMobileExtrasExpanded((open) => !open)}
               />
 
-              <div className="flex flex-col gap-1.5 pt-1 border-t border-black/10">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <button type="button" className={actionButtonClass}>
+                    + Add Habit
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="border-2 border-black font-mono">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold uppercase">Add New Habit</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <Input
+                      placeholder="Enter habit name..."
+                      value={newHabitName}
+                      onChange={(e) => setNewHabitName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
+                      className="border-2 border-black focus:ring-0 focus:ring-offset-0 uppercase"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleAddHabit}
+                        className="flex-1 bg-black text-white hover:bg-gray-800 border-2 border-black font-bold"
+                      >
+                        ADD
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsAddDialogOpen(false);
+                          setNewHabitName('');
+                        }}
+                        variant="outline"
+                        className="border-2 border-black hover:bg-black hover:text-white font-bold"
+                      >
+                        CANCEL
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <div
+                className={cn(
+                  'grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:gap-1.5 pt-3 border-t border-black/10',
+                  !mobileExtrasExpanded && 'max-md:hidden'
+                )}
+              >
                 <ShareButton
                   gridRef={gridRef}
                   printableRef={printableRef}
                   exportSlug={getChallengeExportSlug(data)}
                   className="w-full"
                 />
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                  <DialogTrigger asChild>
-                    <button type="button" className={actionButtonClass}>
-                      + Add Habit
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="border-2 border-black font-mono">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-bold uppercase">Add New Habit</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 mt-4">
-                      <Input
-                        placeholder="Enter habit name..."
-                        value={newHabitName}
-                        onChange={(e) => setNewHabitName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
-                        className="border-2 border-black focus:ring-0 focus:ring-offset-0 uppercase"
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleAddHabit}
-                          className="flex-1 bg-black text-white hover:bg-gray-800 border-2 border-black font-bold"
-                        >
-                          ADD
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setIsAddDialogOpen(false);
-                            setNewHabitName('');
-                          }}
-                          variant="outline"
-                          className="border-2 border-black hover:bg-black hover:text-white font-bold"
-                        >
-                          CANCEL
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <DataStorageControls
+                  data={data}
+                  onImport={setData}
+                  onClear={() => setData(getDefaultData())}
+                  className="w-full"
+                />
               </div>
             </aside>
 

@@ -2,7 +2,17 @@ import { normalizeTrackerData } from '@/lib/challenge';
 import { TrackerData, Habit, HabitCompletion, MemorableMoment } from '@/types/habit';
 import { format } from 'date-fns';
 
-const STORAGE_KEY = 'habit-tracker-data';
+export const STORAGE_KEY = 'habit-tracker-data';
+
+function isTrackerData(value: unknown): value is TrackerData {
+  if (!value || typeof value !== 'object') return false;
+  const data = value as TrackerData;
+  return (
+    Array.isArray(data.habits) &&
+    Array.isArray(data.completions) &&
+    Array.isArray(data.moments)
+  );
+}
 
 export const getDefaultData = (): TrackerData => {
   const currentMonth = format(new Date(), 'yyyy-MM');
@@ -37,6 +47,23 @@ export const saveData = (data: TrackerData): void => {
   } catch (error) {
     console.error('Error saving data:', error);
   }
+};
+
+export const serializeData = (data: TrackerData): string => {
+  return JSON.stringify(data, null, 2);
+};
+
+export const parseImportedData = (raw: string): TrackerData => {
+  const parsed: unknown = JSON.parse(raw);
+  if (!isTrackerData(parsed)) {
+    throw new Error('Invalid backup file. Expected habits, completions, and moments.');
+  }
+  return normalizeTrackerData(parsed);
+};
+
+export const clearStoredData = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEY);
 };
 
 export const addHabit = (data: TrackerData, habit: Habit): TrackerData => {

@@ -6,6 +6,6 @@ export const pillIdle =
 
 export const pillActive = 'border-black bg-black text-white';
 
-export const actionButtonClass = `${pillBase} ${pillIdle} h-9 w-full shadow-none`;
+export const actionButtonClass = `${pillBase} ${pillIdle} h-10 sm:h-9 w-full shadow-none text-[11px] sm:text-xs`;
 
 export const actionButtonCompactClass = `${pillBase} ${pillIdle} h-9 px-3 sm:px-4 shadow-none shrink-0`;
