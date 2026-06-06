@@ -2,6 +2,8 @@
 
 A clean and minimalist habit tracking application designed to help you build effective daily routines and document personal highlights.
 
+<img width="1377" height="944" alt="image" src="https://github.com/user-attachments/assets/5ea11aad-9938-43b0-9823-0454c966bf1c" />
+
 ## Features
 
 - **Visual Habit Tracking** - Track multiple habits using an intuitive calendar grid
