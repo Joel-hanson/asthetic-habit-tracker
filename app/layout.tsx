@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getBasePath } from "@/lib/site";
 import "./globals.css";
+
+const basePath = getBasePath();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +25,7 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  manifest: '/manifest.webmanifest',
+  manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -32,8 +35,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
+    icon: `${basePath}/icon.png`,
+    apple: `${basePath}/icon.png`,
   },
 };
 

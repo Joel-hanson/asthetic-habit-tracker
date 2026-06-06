@@ -38,6 +38,35 @@ npm run dev
 
 ## Deployment
 
+### Deploy to GitHub Pages (subpath)
+
+This app can live on your GitHub profile site as a subpath, for example:
+
+`https://joel-hanson.github.io/asthetic-habit-tracker/`
+
+Your main profile site (`https://joel-hanson.github.io/`) stays at the root. GitHub serves each repository as a project site under `/repository-name/` automatically.
+
+**One-time setup**
+
+1. Push this repo to GitHub.
+2. Open **Settings → Pages** in the repository.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+4. Merge or push to `main`. The workflow in `.github/workflows/deploy-github-pages.yml` builds and deploys the static export.
+
+**Local preview of the Pages build**
+
+```bash
+GITHUB_PAGES=true npm run build:pages
+npx serve out
+# Open http://localhost:3000/asthetic-habit-tracker/
+```
+
+**Notes**
+
+- The subpath (`/asthetic-habit-tracker`) must match the GitHub repository name. Change `GITHUB_PAGES_BASE_PATH` in `lib/site.ts` if you rename the repo.
+- PWA install is disabled on GitHub Pages so a service worker does not interfere with your root profile site.
+- Use `npm run build` (without `GITHUB_PAGES`) for Vercel or other full Next.js hosting.
+
 ### Deploy to Vercel
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
 
