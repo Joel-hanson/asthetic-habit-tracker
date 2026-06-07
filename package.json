@@ -2,6 +2,11 @@
   "name": "habit-tracker",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Joel-hanson/habit-tracker.git"
+  },
+  "homepage": "https://joel-hanson.github.io/habit-tracker/",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
